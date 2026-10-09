@@ -1,4 +1,4 @@
-# RaidTheRoot (RTR) — Ghost of the Vault
+# RaidTheRoot (RTR) - Ghost of the Vault
 
 A six-stage Capture The Flag Play Box simulating the investigation of an
 insider-originated breach at Nexora Bank, a fictional digital bank.
