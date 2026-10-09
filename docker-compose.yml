@@ -1,0 +1,93 @@
+name: raidtheroot
+
+# RaidTheRoot (RTR) - Ghost of the Vault
+services:
+
+  rtr-db:
+    image: mariadb:10.11
+    container_name: rtr-db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ctfd
+      MARIADB_USER: ctfd
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - rtr-db-data:/var/lib/mysql
+    networks:
+      - rtr-control
+    # No published ports: reachable only from rtr-control.
+    command:
+      - mysqld
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --wait_timeout=28800
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  rtr-cache:
+    image: redis:7-alpine
+    container_name: rtr-cache
+    restart: unless-stopped
+    volumes:
+      - rtr-cache-data:/data
+    networks:
+      - rtr-control
+    # No published ports: reachable only from rtr-control.
+
+  rtr-ctfd:
+    image: ctfd/ctfd:3.7.0
+    container_name: rtr-ctfd
+    restart: unless-stopped
+    environment:
+      UPLOAD_FOLDER: /var/uploads
+      DATABASE_URL: mysql+pymysql://ctfd:${DB_PASSWORD}@rtr-db/ctfd
+      REDIS_URL: redis://rtr-cache:6379
+      SECRET_KEY: ${CTFD_SECRET_KEY}
+      WORKERS: 2
+      LOG_FOLDER: /var/log/CTFd
+      ACCESS_LOG: "-"
+      ERROR_LOG: "-"
+      REVERSE_PROXY: "true"
+    volumes:
+      - rtr-ctfd-uploads:/var/uploads
+      - rtr-ctfd-logs:/var/log/CTFd
+    depends_on:
+      rtr-db:
+        condition: service_healthy
+    networks:
+      - rtr-control
+    # No published ports: reached only via rtr-proxy.
+
+  rtr-proxy:
+    image: nginx:1.24-alpine
+    container_name: rtr-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - rtr-ctfd
+    networks:
+      - rtr-control    # to reach CTFd
+      - stage3-net     # to reach the Stage 3 challenge
+
+networks:
+  rtr-control:
+    name: rtr-control
+    driver: bridge
+  stage3-net:
+    name: stage3-net
+    driver: bridge
+
+volumes:
+  rtr-db-data:
+  rtr-cache-data:
+  rtr-ctfd-uploads:
+  rtr-ctfd-logs:
