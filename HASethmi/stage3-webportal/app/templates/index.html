@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VAULT-03 — Nexora Bank Document Portal</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Segoe UI", Arial, sans-serif;
+         background:#f4f6f9; color:#1c2430; }
+  header { background:#0b2545; color:#fff; padding:18px 36px;
+           display:flex; align-items:center; justify-content:space-between; }
+  header h1 { margin:0; font-size:19px; letter-spacing:1.5px; font-weight:600; }
+  header .sub { font-size:12px; color:#9fb3c8; margin-top:3px; }
+  nav { background:#15325c; padding:0 36px; }
+  nav a { display:inline-block; color:#c6d6e8; text-decoration:none;
+          padding:11px 16px; font-size:13px; }
+  nav a:hover, nav a.on { background:#0b2545; color:#fff; }
+  .wrap { max-width:1000px; margin:28px auto; padding:0 20px; }
+  .card { background:#fff; border:1px solid #dde3ea; border-radius:4px;
+          padding:22px 26px; margin-bottom:20px; }
+  h2 { font-size:15px; margin:0 0 14px; color:#0b2545;
+       text-transform:uppercase; letter-spacing:0.6px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; padding:9px 10px; background:#eef2f7;
+       border-bottom:2px solid #d4dde7; color:#44536b; font-size:12px; }
+  td { padding:9px 10px; border-bottom:1px solid #eef1f5; }
+  tr:hover td { background:#fafcfe; }
+  .tag { font-size:11px; padding:2px 8px; border-radius:10px; }
+  .ok { background:#e3f3e8; color:#246b3a; }
+  .no { background:#fdeceb; color:#9b2c23; }
+  .session { font-family:monospace; font-size:12px; color:#5a6a80;
+             background:#f7f9fb; border:1px solid #e3e9f0;
+             padding:10px 12px; border-radius:3px; }
+  footer { text-align:center; color:#8794a6; font-size:12px; padding:26px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>VAULT-03</h1>
+    <div class="sub">Nexora Bank — Internal Document Portal</div>
+  </div>
+  <div style="font-size:12px;color:#9fb3c8;">
+    {% if session %}{{ session.user }} · {{ session.role }}{% else %}not signed in{% endif %}
+  </div>
+</header>
+
+<nav>
+  <a href="/" class="on">Documents</a>
+  <a href="/documents">Archive</a>
+  <a href="/health">Service status</a>
+</nav>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2>Released documents</h2>
+    <table>
+      <tr><th>Reference</th><th>Title</th><th>Date</th><th>Status</th></tr>
+      {% for ref, title, date, status in documents %}
+      <tr>
+        <td style="font-family:monospace">{{ ref }}</td>
+        <td>{{ title }}</td>
+        <td>{{ date }}</td>
+        <td>
+          {% if status == 'Released' %}
+            <span class="tag ok">{{ status }}</span>
+          {% else %}
+            <span class="tag no">{{ status }}</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Session</h2>
+    <div class="session">
+      {% if session %}
+        user={{ session.user }} &nbsp; role={{ session.role }} &nbsp; portal={{ session.portal }}
+      {% else %}
+        no session issued
+      {% endif %}
+    </div>
+    <p style="font-size:12.5px;color:#5a6a80;margin-bottom:0;">
+      Viewer sessions are issued automatically. Elevated functions require an
+      administrator role assigned by IT Infrastructure.
+    </p>
+  </div>
+
+</div>
+
+<footer>
+  Nexora Bank N.V. — internal use only — portal build 1.4<br>
+  Service desk: ext. 4471
+</footer>
+
+<script src="/static/js/portal.js"></script>
+</body>
+</html>
