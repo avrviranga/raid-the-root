@@ -9,9 +9,9 @@ Sri Lanka Institute of Information Technology
 | Member | Student ID | Responsibility |
 |---|---|---|
 | Algiriya Vitharanage R.V. | IT24100446 | CTF Platform & Architecture |
-| Jayashan D H J | IT24101430 | Challenge Design B (Stages 4–6) |
+| Jayashan D H J | IT24101430 | Challenge Design B (Stages 4-6) |
 | Chandler S. R | IT24102116 | Integration, Testing & Documentation |
-| Hansika H A S | IT24103666 | Challenge Design A (Stages 1–3) |
+| Hansika H A S | IT24103666 | Challenge Design A (Stages 1-3) |
 
 ---
 
