@@ -1,0 +1,39 @@
+name: raidtheroot-stage6
+
+services:
+  rtr-stage6:
+    build: .
+    container_name: rtr-stage6
+    hostname: BANK-CORE-01
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    networks:
+      - stage6-net
+    ports:
+      - "2222:22"
+    privileged: false
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    # Minimum set for sshd and cron to function. Escalation to root inside
+    # the container is the intended outcome; these caps do not permit escape
+    # to the host, which is verified by scripts/verify-isolation.sh.
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - DAC_OVERRIDE
+      - FOWNER
+      - SYS_CHROOT
+      - AUDIT_WRITE
+      - KILL
+    mem_limit: 1g
+    cpus: 0.5
+    # No host volume mounts: the filesystem is ephemeral, which is what makes
+    # the rebuild a complete reset.
+
+networks:
+  stage6-net:
+    name: stage6-net
+    driver: bridge

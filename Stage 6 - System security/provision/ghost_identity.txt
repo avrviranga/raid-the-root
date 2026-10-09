@@ -1,0 +1,34 @@
+================================================================
+  INCIDENT EVIDENCE - BANK-CORE-01
+  recovered from root-owned storage
+================================================================
+
+GHOST WAS NOT AN EXTERNAL HACKER.
+
+The svc_ghost service account on this host was created on
+2026-09-14 at 02:58 UTC, using the credentials of:
+
+    R. Jewantha  (RJewantha)
+    Treasury Operations
+    Staff ID NXB-2291
+
+Those credentials were reset over the phone at 02:11 that same
+morning, after fourteen failed login attempts from an
+unrecognised client. The identity check was verbal.
+
+The account was compromised that night. Everything that
+followed - the staging portal, the encrypted backup, the
+beacon on this network - was built on top of it in the
+weeks afterwards.
+
+THE 03:47 AM TRANSFER WAS NOT THE ATTACK.
+IT WAS THE FIRST TIME ANYONE NOTICED.
+
+----------------------------------------------------------------
+
+  You found me. But you found me too late.
+
+----------------------------------------------------------------
+
+RTR{find-the-ghost_root}
+================================================================
