@@ -1,5 +1,13 @@
 name: raidtheroot-stage6
 
+# RaidTheRoot (RTR) - Stage 6 "Find the Ghost" (BANK-CORE-01)
+#
+# The container is given the static IP 10.10.30.11 on its own isolated
+# subnet, so the address recovered in Stage 5 is the real connection point:
+#     ssh svc_backup@10.10.30.11
+# Port 2222 on localhost is kept as a fallback:
+#     ssh svc_backup@127.0.0.1 -p 2222
+
 services:
   rtr-stage6:
     build: .
@@ -9,16 +17,17 @@ services:
     env_file:
       - ../.env
     networks:
-      - stage6-net
+      stage6-net:
+        ipv4_address: 10.10.30.11
     ports:
-      - "2222:22"
+      - "2222:22"                 # fallback access on localhost
     privileged: false
     security_opt:
       - no-new-privileges:true
     cap_drop: [ALL]
-    # Minimum set for sshd and cron to function. Escalation to root inside
-    # the container is the intended outcome; these caps do not permit escape
-    # to the host, which is verified by scripts/verify-isolation.sh.
+    # Minimum capabilities for sshd and cron. Escalation to root inside the
+    # container is the intended challenge outcome; these do not permit escape
+    # to the host, which scripts/verify-isolation.sh confirms.
     cap_add:
       - CHOWN
       - SETUID
@@ -37,3 +46,6 @@ networks:
   stage6-net:
     name: stage6-net
     driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.30.0/24
