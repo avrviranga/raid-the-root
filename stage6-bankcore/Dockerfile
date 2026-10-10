@@ -9,13 +9,18 @@ FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN sed -i 's|http://|https://|g' /etc/apt/sources.list /etc/apt/sources.list.d/debian.sources 2>/dev/null; \
+    echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99insecure && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
         openssh-server \
         cron \
         procps \
         nano \
         less \
         iproute2 \
+    && rm -f /etc/apt/apt.conf.d/99insecure \
     && rm -rf /var/lib/apt/lists/*
 
 # --- SSH ---------------------------------------------------------------
