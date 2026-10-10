@@ -1,6 +1,0 @@
-# Nexora Bank scheduled maintenance
-# Installed 2026-09-14. No change request on record.
-SHELL=/bin/bash
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-
-* * * * * root /opt/nexora/maintenance/rotate_logs.sh
