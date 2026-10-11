@@ -7,6 +7,7 @@
 #   - installs Docker Engine + Compose if missing (official repo on Ubuntu)
 #   - adds the current user to the docker group
 #   - verifies docker works without sudo
+#   - installs helper tools the solvers need (sshpass)
 #   - adds the challenge hostnames to /etc/hosts
 #   - makes all scripts executable
 #
@@ -153,7 +154,23 @@ else
     warn "docker ps failed - see the docker group step above"
 fi
 
-# --- 5. /etc/hosts entries --------------------------------------------
+# --- 5. helper tools (sshpass for the Stage 6 solver) -----------------
+say "Checking helper tools"
+if command -v sshpass >/dev/null; then
+    ok "sshpass present"
+else
+    warn "sshpass not installed (Stage 6 solve.sh uses it for non-interactive SSH)"
+    act "installing sshpass (needs sudo)"
+    if sudo apt-get install -y sshpass >/dev/null 2>&1 && command -v sshpass >/dev/null; then
+        ok "sshpass installed"
+    else
+        warn "could not auto-install sshpass - install it manually when needed:"
+        act "sudo apt-get install -y sshpass"
+        warn "(not fatal: solve.sh falls back to 'docker exec' if sshpass is absent)"
+    fi
+fi
+
+# --- 6. /etc/hosts entries --------------------------------------------
 say "Checking /etc/hosts"
 HOSTS="ctf.rtr.local vault-03.rtr.local"
 missing=""
@@ -174,7 +191,7 @@ if [[ -n "$missing" ]]; then
     fi
 fi
 
-# --- 6. next steps -----------------------------------------------------
+# --- 7. next steps -----------------------------------------------------
 say "Bootstrap complete"
 if [[ "$NEED_RELOGIN" -eq 1 ]]; then
     cat <<'EOF'
