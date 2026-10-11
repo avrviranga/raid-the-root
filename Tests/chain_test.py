@@ -12,7 +12,7 @@ It does NOT replace the live manual demo - it confirms the chain holds and
 produces a pass/fail record for the test log.
 
 Run from the repository root, with the box deployed:
-    python3 tests/chain_test.py
+    python3 Tests/chain_test.py
 """
 
 import base64
@@ -249,7 +249,7 @@ def stage6(user, password):
 
 
 def write_log():
-    out = ROOT / "tests" / "output" / "chain_test_result.txt"
+    out = ROOT / "Tests" / "output" / "chain_test_result.txt"
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w") as fh:
         fh.write("RaidTheRoot - end-to-end chain test\n")

@@ -1,0 +1,29 @@
+RaidTheRoot - end-to-end chain test
+passed: 26   failed: 0
+
+[PASS] directory lists RJewantha (NXB-2291)
+[PASS] paste leaks r.jewantha@nexorabank.com
+[PASS] helpdesk shows NXB-2291 lockout before incident
+[PASS] carrier image named RJewantha_backup.png exists
+[PASS] payload names VAULT-03
+[PASS] payload carries the flag
+[PASS] portal reachable
+[PASS] viewer session issued
+[PASS] viewer rejected from /internal (403)
+[PASS] forged admin session accepted (200)
+[PASS] flag present
+[PASS] cipher hint header returned
+[PASS] encrypted file downloads
+[PASS] decrypts with the Stage 1 username
+[PASS] flag recovered
+[PASS] IP:port recovered
+[PASS] capture named for 10.10.20.50 exists
+[PASS] exfil payload decodes
+[PASS] names BANK-CORE-01
+[PASS] carries SSH credential
+[PASS] credential matches .env   PCAP was generated with a different password - regenerate it
+[PASS] flag present
+[PASS] SSH foothold works
+[PASS] in svc_ghost group (escalation prerequisite)
+[PASS] T-06: evidence denied to foothold user
+[PASS] maintenance directory is group-writable
