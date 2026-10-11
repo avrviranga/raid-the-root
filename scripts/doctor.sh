@@ -139,6 +139,20 @@ fi
 
 # ---------------------------------------------------------------- stage5/6 sync
 hdr "Stage 5 / Stage 6 credential sync"
+
+# Ensure scapy is available so we can read the PCAP; install it automatically
+# if missing (runs in both normal and --check mode).
+if command -v python3 >/dev/null && ! python3 -c "import scapy" 2>/dev/null; then
+    warn "scapy not installed - installing it"
+    if sudo apt-get install -y python3-scapy >/dev/null 2>&1; then
+        ok "installed python3-scapy"
+    elif pip install scapy --break-system-packages >/dev/null 2>&1; then
+        ok "installed scapy via pip"
+    else
+        warn "could not auto-install scapy - run: sudo apt install -y python3-scapy"
+    fi
+fi
+
 pcap="stage5-forensics/capture_10.10.20.50.pcap"
 if [[ -f "$pcap" && -f .env ]] && command -v python3 >/dev/null; then
     env_pass="$(grep -E '^STAGE6_PASSWORD=' .env | cut -d= -f2-)"
