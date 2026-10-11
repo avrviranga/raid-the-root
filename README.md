@@ -3,9 +3,6 @@
 A six-stage Capture The Flag Play Box simulating the investigation of an
 insider-originated breach at Nexora Bank, a fictional digital bank.
 
-IE3132 Penetration Testing — Assignment 02
-Sri Lanka Institute of Information Technology
-
 | Member | Student ID | Responsibility |
 |---|---|---|
 | Algiriya Vitharanage R.V. | IT24100446 | CTF Platform & Architecture |
@@ -25,7 +22,7 @@ Sri Lanka Institute of Information Technology
 Docker is not a prerequisite you have to satisfy by hand — `bootstrap.sh`
 installs it for you on a fresh Ubuntu or Kali machine (see below).
 
-## Quick start — one command
+## Quick start - one command
 
 From a clean clone, the whole box comes up with a single runner that lives in
 the repository root:
@@ -38,14 +35,12 @@ chmod +x run-all.sh
 ./run-all.sh
 ```
 
-`run-all.sh` runs every setup step in order and shows a live progress bar:
-
-1. **bootstrap** — install Docker, add you to the `docker` group, add the
+1. **bootstrap** - install Docker, add you to the `docker` group, add the
    challenge hostnames to `/etc/hosts`
-2. **deploy** — bring up the control plane and the Stage 3 / Stage 6 containers
-3. **setup-ctfd** — import the six challenges into CTFd
-4. **doctor** — fix hosts/scapy and health-check everything
-5. **verify-isolation** — run the T-05 / T-06 security checks
+2. **deploy** - bring up the control plane and the Stage 3 / Stage 6 containers
+3. **setup-ctfd** - import the six challenges into CTFd
+4. **doctor** - fix hosts/scapy and health-check everything
+5. **verify-isolation** - run the T-05 / T-06 security checks
 
 If this is the first time Docker is installed on the machine, the runner will
 add you to the `docker` group and then stop, because a new group only applies
@@ -151,7 +146,7 @@ to the control plane.
 
 ## Health check / troubleshooting
 
-`doctor.sh` is safe to run at any time. It diagnoses — and, by default, fixes —
+`doctor.sh` is safe to run at any time. It diagnoses - and, by default, fixes -
 the common first-run problems, and reports everything in colour:
 
 ```bash
@@ -185,7 +180,7 @@ participant ──SSH/22─────────────> Stage 6 BANK-CO
 
 One isolated bridge network per live challenge. Only Nginx spans more than one
 network. Challenge containers have no route to each other or to the control
-plane, so full compromise of Stage 6 — which is the intended outcome — yields
+plane, so full compromise of Stage 6 - which is the intended outcome - yields
 no other stage's flag and cannot reach the database where flags are stored.
 
 Challenge containers run unprivileged, drop all Linux capabilities except the
