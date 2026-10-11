@@ -22,20 +22,61 @@ Sri Lanka Institute of Information Technology
 - 4 vCPU / 8 GB RAM / 40 GB disk recommended
 - Linux host (tested on Ubuntu 22.04 LTS and Kali 2026.x)
 
-## Setup
+Docker is not a prerequisite you have to satisfy by hand — `bootstrap.sh`
+installs it for you on a fresh Ubuntu or Kali machine (see below).
+
+## Quick start — one command
+
+From a clean clone, the whole box comes up with a single runner that lives in
+the repository root:
 
 ```bash
 git clone <repo-url> raidtheroot
 cd raidtheroot
 
-cp .env.template .env
-# Edit .env and replace every CHANGE_ME value.
-# Generate strong values with:  openssl rand -hex 24
-
-./scripts/deploy.sh
+chmod +x run-all.sh
+./run-all.sh
 ```
 
-Then add the challenge hostnames to your hosts file:
+`run-all.sh` runs every setup step in order and shows a live progress bar:
+
+1. **bootstrap** — install Docker, add you to the `docker` group, add the
+   challenge hostnames to `/etc/hosts`
+2. **deploy** — bring up the control plane and the Stage 3 / Stage 6 containers
+3. **setup-ctfd** — import the six challenges into CTFd
+4. **doctor** — fix hosts/scapy and health-check everything
+5. **verify-isolation** — run the T-05 / T-06 security checks
+
+If this is the first time Docker is installed on the machine, the runner will
+add you to the `docker` group and then stop, because a new group only applies
+to a fresh login shell. Activate it and re-run:
+
+```bash
+newgrp docker        # refreshes the current terminal
+./run-all.sh         # pick up where it left off
+```
+
+## Manual setup (step by step)
+
+If you prefer to run the stages yourself, the same steps are available
+individually:
+
+```bash
+cp .env.template .env        # deploy.sh does this for you if .env is missing
+# The template ships with working values; replace any CHANGE_ME if you want
+# your own secrets.  Generate strong values with:  openssl rand -hex 24
+
+./scripts/bootstrap.sh       # first run only: Docker, docker group, /etc/hosts
+./scripts/deploy.sh          # control plane + live challenge stages
+./scripts/setup-ctfd.sh      # import the six challenges (offline, no wizard)
+./scripts/doctor.sh          # diagnose + auto-fix common first-run problems
+```
+
+If you ran `bootstrap.sh` and it added you to the `docker` group, run
+`newgrp docker` (or log out and back in) once before `deploy.sh`.
+
+The challenge hostnames must resolve to localhost. `bootstrap.sh` and
+`doctor.sh` add these automatically; to do it by hand:
 
 ```
 127.0.0.1   ctf.rtr.local
@@ -45,19 +86,20 @@ Then add the challenge hostnames to your hosts file:
 - Linux/macOS: `/etc/hosts`
 - Windows: `C:\Windows\System32\drivers\etc\hosts`
 
-### First run
+### CTFd import
 
-Open <https://ctf.rtr.local> and complete the CTFd setup wizard (the
-self-signed certificate will prompt a browser warning — this is expected for
-a local lab). Then import the event configuration:
+`setup-ctfd.sh` imports the event **offline**, straight into the running CTFd
+container (`docker exec … manage.py import_ctf`), so there is no setup wizard
+to click through and no CSRF/403 problem. It creates all six challenges with
+their flags, point values, progressive hints and — importantly — the
+prerequisite chain that enforces stage order.
 
-```
-CTFd Admin Panel → Config → Backup → Import
-    ctfd-config/rtr-event-export.zip
-```
+Log in afterwards with the admin account that ships inside the imported event,
+then open <https://ctf.rtr.local>. The self-signed certificate will prompt a
+browser warning; this is expected for a local lab.
 
-This creates all six challenges with their flags, point values, progressive
-hints and — importantly — the prerequisite chain that enforces stage order.
+If the offline import ever fails, the event can still be imported by hand:
+`CTFd Admin Panel → Config → Backup → Import → ctfd-config/rtr-event-export.zip`.
 
 ## Access points
 
@@ -65,10 +107,18 @@ hints and — importantly — the prerequisite chain that enforces stage order.
 |---|---|
 | CTFd control plane | <https://ctf.rtr.local> |
 | Stage 3 portal (VAULT-03) | <https://vault-03.rtr.local> |
-| Stage 6 foothold (BANK-CORE-01) | `ssh <STAGE6_USER>@127.0.0.1 -p 2222` |
+| Stage 6 foothold (BANK-CORE-01) | `ssh svc_backup@10.10.30.11` |
 
-Stages 1, 2, 4 and 5 are static forensic artefacts downloaded from their
-CTFd challenge pages once the preceding stage has been solved.
+Stage 6 runs on a static address, `10.10.30.11`, on its own isolated subnet, so
+the IP recovered in Stage 5 is the real connection point. A localhost fallback
+is also exposed for convenience:
+
+```
+ssh svc_backup@127.0.0.1 -p 2222
+```
+
+Stages 1, 2, 4 and 5 are static forensic artefacts downloaded from their CTFd
+challenge pages once the preceding stage has been solved.
 
 ## Reset and recovery
 
@@ -99,6 +149,29 @@ reports pass/fail. Every check asserts that a connection **must fail**: a
 reachable target means a compromised challenge could pivot to another stage or
 to the control plane.
 
+## Health check / troubleshooting
+
+`doctor.sh` is safe to run at any time. It diagnoses — and, by default, fixes —
+the common first-run problems, and reports everything in colour:
+
+```bash
+./scripts/doctor.sh          # diagnose + auto-fix
+./scripts/doctor.sh --check  # diagnose only, change nothing
+```
+
+It checks Docker and the `docker` group, the `.env` file, the `/etc/hosts`
+entries, the TLS certificate, every container, CTFd reachability, and that the
+Stage 5 PCAP credential matches the Stage 6 container. It auto-installs `scapy`
+if it is missing (needed to read the PCAP).
+
+| Symptom | Fix |
+|---|---|
+| `permission denied` talking to Docker | `newgrp docker` (or log out/in) after bootstrap added you to the group |
+| `502 Bad Gateway` on ctf.rtr.local | CTFd is still starting; wait ~30s or `docker compose restart rtr-ctfd` |
+| Site won't resolve | hostnames missing from `/etc/hosts` — re-run `doctor.sh` |
+| Stage 6 connection refused | rebuild the stage: `./scripts/reset.sh stage6` |
+| PCAP / credential mismatch | `doctor.sh` reports it; regenerate with `(cd stage5-forensics && python3 generate.py)` |
+
 ## Architecture
 
 ```
@@ -106,7 +179,8 @@ participant ──HTTPS/443──> Nginx ──┬──> CTFd ──> MariaDB
                                    │      └────> Redis        [rtr-control]
                                    └──> Stage 3 portal        [stage3-net]
 
-participant ──SSH/2222───────────> Stage 6 BANK-CORE-01       [stage6-net]
+participant ──SSH/22─────────────> Stage 6 BANK-CORE-01       [stage6-net]
+                                   (10.10.30.11, 2222 on localhost)
 ```
 
 One isolated bridge network per live challenge. Only Nginx spans more than one
@@ -122,11 +196,15 @@ carry explicit CPU and memory limits.
 
 ```
 raidtheroot/
+├── run-all.sh                one-command runner (bootstrap → verify)
 ├── docker-compose.yml        control plane: nginx, ctfd, mariadb, redis
 ├── .env.template             secret template (.env is untracked)
 ├── nginx/nginx.conf          reverse proxy, TLS, rate limiting
 ├── scripts/
+│   ├── bootstrap.sh          first-run machine prep (Docker, group, hosts)
 │   ├── deploy.sh             full deployment from clean state
+│   ├── setup-ctfd.sh         offline import of the six challenges
+│   ├── doctor.sh             diagnose + auto-fix + health check
 │   ├── reset.sh              per-stage and full-box recovery
 │   └── verify-isolation.sh   T-05 / T-06 verification
 ├── stage1-osint/             OSINT artefact set
@@ -136,7 +214,7 @@ raidtheroot/
 ├── stage5-forensics/         synthetic PCAP + Scapy generator
 ├── stage6-bankcore/          BANK-CORE-01 container (live)
 ├── ctfd-config/              CTFd event export
-└── tests/                    test cases, results, logs
+└── tests/                    test cases, chain_test.py, results, logs
 ```
 
 ## Ethical scope
