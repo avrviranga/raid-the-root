@@ -21,7 +21,7 @@ passed: 26   failed: 0
 [PASS] exfil payload decodes
 [PASS] names BANK-CORE-01
 [PASS] carries SSH credential
-[PASS] credential matches .env   PCAP was generated with a different password - regenerate it
+[PASS] credential matches .env
 [PASS] flag present
 [PASS] SSH foothold works
 [PASS] in svc_ghost group (escalation prerequisite)

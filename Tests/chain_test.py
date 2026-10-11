@@ -44,7 +44,7 @@ def check(name, condition, detail=""):
     else:
         FAIL += 1
         print(f"  \033[0;31mFAIL\033[0m  {name}   {detail}")
-    RESULTS.append((status, name, detail))
+    RESULTS.append((status, name, "" if condition else detail))
     return condition
 
 

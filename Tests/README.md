@@ -38,11 +38,11 @@ the Stage 6 container drifting out of sync.
 ```bash
 cd <repo-root>
 sudo apt install -y sshpass          # needed for the Stage 6 SSH checks
-python3 tests/chain_test.py
+python3 Tests/chain_test.py
 ```
 
 Exit code is 0 on a full pass, 1 if any check fails. Results are written to
-`tests/output/chain_test_result.txt`.
+`Tests/output/chain_test_result.txt`.
 
 **Expected result:** 26 checks, 0 failures.
 
@@ -114,8 +114,8 @@ Capture the output so it can be shown in the video and attached as proof of
 testing:
 
 ```bash
-python3 tests/chain_test.py        | tee tests/output/chain_$(date +%F).txt
-./scripts/verify-isolation.sh      | tee tests/output/isolation_$(date +%F).txt
+python3 Tests/chain_test.py        | tee Tests/output/chain_$(date +%F).txt
+./scripts/verify-isolation.sh      | tee Tests/output/isolation_$(date +%F).txt
 ```
 
 These logs, together with the Git commit history, are the "testing evidence
